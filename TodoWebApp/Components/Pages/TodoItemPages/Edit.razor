@@ -1,0 +1,94 @@
+@page "/todoitems/edit"
+@using Microsoft.EntityFrameworkCore
+@using TodoWebApp.Data.Models
+@inject IDbContextFactory<TodoWebApp.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>TodoItem</h2>
+<hr />
+@if (TodoItem is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="TodoItem" OnValidSubmit="UpdateTodoItem" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="TodoItem.Id" value="@TodoItem.Id" />
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title:</label>
+                    <InputText id="title" @bind-Value="TodoItem.Title" class="form-control" />
+                    <ValidationMessage For="() => TodoItem.Title" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="isdone" class="form-label">IsDone:</label>
+                    <InputCheckbox id="isdone" @bind-Value="TodoItem.IsDone" class="form-check-input" />
+                    <ValidationMessage For="() => TodoItem.IsDone" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/todoitems">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private TodoItem? TodoItem { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        TodoItem ??= await context.TodoItems.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (TodoItem is null)
+        {
+            NavigationManager.NotFound();
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdateTodoItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(TodoItem!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!TodoItemExists(TodoItem!.Id))
+            {
+                NavigationManager.NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/todoitems");
+    }
+
+    private bool TodoItemExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.TodoItems.Any(e => e.Id == id);
+    }
+}

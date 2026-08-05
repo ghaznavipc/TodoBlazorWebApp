@@ -1,0 +1,51 @@
+@page "/todoitems/create"
+@using Microsoft.EntityFrameworkCore
+@using TodoWebApp.Data.Models
+@inject IDbContextFactory<TodoWebApp.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>TodoItem</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="TodoItem" OnValidSubmit="AddTodoItem" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="title" class="form-label">Title:</label> 
+                <InputText id="title" @bind-Value="TodoItem.Title" class="form-control" /> 
+                <ValidationMessage For="() => TodoItem.Title" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="isdone" class="form-label">IsDone:</label> 
+                <InputCheckbox id="isdone" @bind-Value="TodoItem.IsDone" class="form-check-input" /> 
+                <ValidationMessage For="() => TodoItem.IsDone" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/todoitems">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private TodoItem TodoItem { get; set; } = default!;
+
+    protected override void OnInitialized() => TodoItem ??= new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddTodoItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.TodoItems.Add(TodoItem);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/todoitems");
+    }
+}

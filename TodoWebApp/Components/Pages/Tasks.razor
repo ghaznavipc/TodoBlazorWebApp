@@ -1,0 +1,39 @@
+﻿@page "/tasks"
+@rendermode InteractiveServer
+
+@inject NavigationManager navigationManager
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<h3>Tasks</h3>
+
+
+@if (TodoItems is null)
+{
+    <h2>loading...</h2>
+}
+else if (TodoItems.Count == 0)
+{
+    <h2>No tasks found.</h2>
+}
+else
+{
+    @foreach (var task in TodoItems)
+    {
+        <div>
+            <input @bind="task.IsDone" type="checkbox" />
+            <input @bind="task.Title" />
+            <span>@task.Title</span>
+        </div>
+    }
+}
+
+@code {
+    [PersistentState]
+    public List<TodoItem>? TodoItems { get; set; }
+
+        protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        TodoItems = await db.TodoItems.ToListAsync();
+    }
+}

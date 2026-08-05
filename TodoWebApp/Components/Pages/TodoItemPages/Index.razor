@@ -1,0 +1,40 @@
+@page "/todoitems"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.EntityFrameworkCore
+@using TodoWebApp.Data
+
+@implements IAsyncDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="todoitems/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.TodoItems">
+    <PropertyColumn Property="todoitem => todoitem.Title" />
+    <PropertyColumn Property="todoitem => todoitem.IsDone" />
+
+    <TemplateColumn Context="todoitem">
+        <a href="@($"todoitems/edit?id={todoitem.Id}")">Edit</a> |
+        <a href="@($"todoitems/details?id={todoitem.Id}")">Details</a> |
+        <a href="@($"todoitems/delete?id={todoitem.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private ApplicationDbContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

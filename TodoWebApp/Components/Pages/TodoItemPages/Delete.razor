@@ -1,0 +1,59 @@
+@page "/todoitems/delete"
+@using Microsoft.EntityFrameworkCore
+@using TodoWebApp.Data.Models
+@inject IDbContextFactory<TodoWebApp.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Delete</PageTitle>
+
+<h1>Delete</h1>
+
+<p>Are you sure you want to delete this?</p>
+<div>
+    <h2>TodoItem</h2>
+    <hr />
+    @if (todoitem is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Title</dt>
+            <dd class="col-sm-10">@todoitem.Title</dd>
+        </dl>
+        <dl class="row">
+            <dt class="col-sm-2">IsDone</dt>
+            <dd class="col-sm-10">@todoitem.IsDone</dd>
+        </dl>
+        <EditForm method="post" Model="todoitem" OnValidSubmit="DeleteTodoItem" FormName="delete" Enhance>
+            <button type="submit" class="btn btn-danger" disabled="@(todoitem is null)">Delete</button> |
+            <a href="/todoitems">Back to List</a>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private TodoItem? todoitem;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        todoitem = await context.TodoItems.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (todoitem is null)
+        {
+            NavigationManager.NotFound();
+        }
+    }
+
+    private async Task DeleteTodoItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.TodoItems.Remove(todoitem!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/todoitems");
+    }
+}

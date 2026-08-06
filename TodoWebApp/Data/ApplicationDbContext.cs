@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TodoWebApp.Data.Models;
+using TodoWebApp.Models;
 
 namespace TodoWebApp.Data;
 

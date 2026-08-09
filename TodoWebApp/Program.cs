@@ -10,7 +10,7 @@ builder.Services.AddRazorComponents()
 
 
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("LocalDbConnection")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")));
 
 builder.Services.AddQuickGridEntityFrameworkAdapter();
 

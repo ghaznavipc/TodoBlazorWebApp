@@ -1,0 +1,96 @@
+﻿@using TodoWebApp.Models
+
+<div class="todo-item @(Todo.IsDone ? "completed" : "")">
+    <div class="todo-content">
+        <input 
+            type="checkbox" 
+            @bind="Todo.IsDone" 
+            @bind:after="() => OnToggle.InvokeAsync(Todo.Id)"
+            class="todo-checkbox" />
+        
+        @if (IsEditing)
+        {
+            <input 
+                @bind="EditTitle" 
+                @bind:event="oninput"
+                class="todo-edit-input"
+                @onkeydown="OnEditKeyDown"
+                @ref="EditInput" />
+        }
+        else
+        {
+            <span class="todo-title" @ondblclick="StartEditing">@Todo.Title</span>
+        }
+    </div>
+    
+    <div class="todo-actions">
+        @if (IsEditing)
+        {
+            <button @onclick="SaveEdit" class="btn-save">ذخیره</button>
+            <button @onclick="CancelEdit" class="btn-cancel">لفو</button>
+        }
+        else
+        {
+            <button @onclick="() => OnDelete.InvokeAsync(Todo.Id)" class="btn-delete">حذف</button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public TodoItem Todo { get; set; } = default!;
+    
+    [Parameter]
+    public EventCallback<int> OnToggle { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> OnDelete { get; set; }
+    
+    [Parameter]
+    public EventCallback<TodoItem> OnUpdate { get; set; }
+
+    private bool IsEditing = false;
+    private string EditTitle = string.Empty;
+    private ElementReference EditInput;
+
+    private void StartEditing()
+    {
+        EditTitle = Todo.Title ?? string.Empty;
+        IsEditing = true;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (!string.IsNullOrWhiteSpace(EditTitle))
+        {
+            var updatedTodo = new TodoItem
+            {
+                Id = Todo.Id,
+                Title = EditTitle.Trim(),
+                IsDone = Todo.IsDone,
+                CreateDate = Todo.CreateDate,
+                CompleteDate = Todo.CompleteDate
+            };
+            
+            await OnUpdate.InvokeAsync(updatedTodo);
+        }
+        IsEditing = false;
+    }
+
+    private void CancelEdit()
+    {
+        IsEditing = false;
+    }
+
+    private async Task OnEditKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SaveEdit();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelEdit();
+        }
+    }
+}

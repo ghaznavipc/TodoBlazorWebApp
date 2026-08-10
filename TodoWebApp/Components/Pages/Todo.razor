@@ -1,0 +1,148 @@
+﻿@page "/todo"
+@rendermode InteractiveServer
+@using TodoWebApp.Data
+@using TodoWebApp.Models
+@inject TodoService TodoService
+@inject ILogger<Todo> Logger
+
+<div class="todo-container">
+    <h1>لیست کارها</h1>
+    
+    <div class="todo-stats">
+        <span>مجموع: @Todos.Count</span>
+        <span>انجام شده: @Todos.Count(t => t.IsDone)</span>
+        <span>مانده: @Todos.Count(t => !t.IsDone)</span>
+    </div>
+
+    <div class="add-todo-form">
+        <input 
+            @bind="NewTodoTitle" 
+            @bind:event="oninput"
+            placeholder="محل نوشتن کار جدید"
+            class="todo-input"
+            @onkeydown="OnEnterKey" />
+        <button @onclick="AddTodo" class="btn-add" disabled="@string.IsNullOrWhiteSpace(NewTodoTitle)">
+            افزودن
+        </button>
+    </div>
+
+    <div class="todo-list">
+        @if (IsLoading)
+        {
+            <div class="loading">Loading todos...</div>
+        }
+        else if (Todos.Count == 0)
+        {
+            <div class="empty-state">No todos yet. Add one above!</div>
+        }
+        else
+        {
+            @foreach (var todo in Todos)
+            {
+                <TodoItemComponent 
+                    Todo="todo" 
+                    OnToggle="ToggleTodoStatus" 
+                    OnDelete="DeleteTodo"
+                    OnUpdate="UpdateTodo" />
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private List<TodoItem> Todos = new();
+    private string NewTodoTitle = string.Empty;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodos();
+    }
+
+    private async Task LoadTodos()
+    {
+        try
+        {
+            IsLoading = true;
+            Todos = await TodoService.GetTodosAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading todos");
+            // You could add error handling UI here
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task AddTodo()
+    {
+        if (string.IsNullOrWhiteSpace(NewTodoTitle))
+            return;
+
+        try
+        {
+            var newTodo = await TodoService.CreateTodoAsync(NewTodoTitle);
+            Todos.Insert(0, newTodo);
+            NewTodoTitle = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding todo");
+        }
+    }
+
+    private async Task ToggleTodoStatus(int id)
+    {
+        try
+        {
+            await TodoService.ToggleTodoStatusAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling todo status");
+        }
+    }
+
+    private async Task UpdateTodo(TodoItem updatedTodo)
+    {
+        try
+        {
+            await TodoService.UpdateTodoAsync(updatedTodo);
+            var index = Todos.FindIndex(t => t.Id == updatedTodo.Id);
+            if (index != -1)
+            {
+                Todos[index] = updatedTodo;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating todo");
+        }
+    }
+
+    private async Task DeleteTodo(int id)
+    {
+        try
+        {
+            await TodoService.DeleteTodoAsync(id);
+            Todos.RemoveAll(t => t.Id == id);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting todo");
+        }
+    }
+
+    private async Task OnEnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddTodo();
+        }
+    }
+}

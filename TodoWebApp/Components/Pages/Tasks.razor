@@ -4,16 +4,31 @@
 @inject NavigationManager navigationManager
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
-<h3>Tasks</h3>
+<h3>وظایف</h3>
+
+
+<div class="input-group input-group-lg my-5">
+    <input @bind="newTitle"
+           @bind:event="oninput"
+           @ref="newTitleElement"
+           @onkeydown="OnEnterKey"
+           class="form-control" placeholder="محل نوشتن وظیفه جدید" />
+    <button @onclick="Create" class="btn fw-bold btn-primary" type="button">+</button>
+</div>
 
 
 @if (TodoItems is null)
 {
-    <h2>loading...</h2>
+    <p class="placeholder-wave">
+        <span class="placeholder col-12 placeholder-lg mt-4"></span>
+        <span class="placeholder col-12 placeholder-lg mt-4"></span>
+        <span class="placeholder col-12 placeholder-lg mt-4"></span>
+        <span class="placeholder col-12 placeholder-lg mt-4"></span>
+    </p>
 }
 else if (TodoItems.Count == 0)
 {
-    <h2>No tasks found.</h2>
+    <p class="alert alert-info">وظیفه‌ای نیست. بالا یکی بساز!</p>
 }
 else
 {
@@ -21,22 +36,69 @@ else
     {
         <div class="input-group mt-3">
             <div class="input-group-text">
-                <input @bind="task.IsDone" class="form-check-input mt-0" type="checkbox" />
+                <input @bind="task.IsDone" @bind:after="() => Update(task)" class="form-check-input mt-0" type="checkbox" />
             </div>
-            <input @bind="task.Title" class="form-control @(task.IsDone ? "text-decoration-line-through" : "")" />
-            <input class="btn btn-outline-light" type="button" value="❌" />
+            <input @bind="@task.Title" @bind:after="() => Update(task)" class="form-control @(task.IsDone ? "text-decoration-line-through bg-light text-secondary" : "")" />
+            <input @onclick="() => Delete(task)" class="btn btn-outline-danger fw-bold fs-3 pt-1" type="button" value="×" />
         </div>
     }
-    <button class="mt-3 btn btn-outline-light shadow-sm">➕</button>
 }
 
 @code {
+    string newTitle = string.Empty;
+    private ElementReference newTitleElement;
+
     [PersistentState]
     public List<TodoItem>? TodoItems { get; set; }
 
-        protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         TodoItems = await db.TodoItems.ToListAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await newTitleElement.FocusAsync(true);
+    }
+
+    private async Task Delete(TodoItem item)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.TodoItems.Remove(item);
+        await db.SaveChangesAsync();
+
+        TodoItems?.Remove(item);
+    }
+
+    private async Task Update(TodoItem item)
+    {
+        item.CompleteDate = item.IsDone ? DateTime.UtcNow : null;
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.TodoItems.Update(item);
+        await db.SaveChangesAsync();
+    }
+
+    private async Task Create()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        TodoItem entity = new()
+        {
+            Title = newTitle,
+            CreateDate = DateTime.UtcNow
+        };
+        db.TodoItems.Add(entity);
+        await db.SaveChangesAsync();
+
+        TodoItems?.Add(entity);
+        newTitle = string.Empty;
+    }
+
+    private async Task OnEnterKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await Create();
     }
 }

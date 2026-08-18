@@ -39,24 +39,35 @@
 @code {
     [Parameter]
     public TodoItem Todo { get; set; } = default!;
-    
+
     [Parameter]
     public EventCallback<int> OnToggle { get; set; }
-    
+
     [Parameter]
     public EventCallback<int> OnDelete { get; set; }
-    
+
     [Parameter]
     public EventCallback<TodoItem> OnUpdate { get; set; }
 
     private bool IsEditing = false;
     private string EditTitle = string.Empty;
     private ElementReference EditInput;
+    private bool _shouldFocus;
 
-    private void StartEditing()
+    private async Task StartEditing()
     {
         EditTitle = Todo.Title ?? string.Empty;
         IsEditing = true;
+        _shouldFocus = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldFocus)
+        {
+            _shouldFocus = false;
+            await EditInput.FocusAsync(true);
+        }
     }
 
     private async Task SaveEdit()
